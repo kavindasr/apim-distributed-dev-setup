@@ -85,11 +85,17 @@ mkdir -p logs
 rm -rf logs/*
 
 # Create copies of packs for each component
-print_title "Creating copies of packs for each component..."
+print_title "Creating copies of packs for each component"
 for copy in "${COPIES[@]}"; do
   echo "Creating copy: $COMPONENTS_DIR/$copy..."
   cp -r "$EXTRACT_DIR" "$COMPONENTS_DIR/$copy"
 done
+
+# Profile the packs for each component
+print_title "Profiling the packs for each component"
+sh ./components/wso2am-cp/bin/profileSetup.sh -Dprofile=control-plane > logs/apim-cp.log 2>&1 &
+sh ./components/wso2am-tm/bin/profileSetup.sh -Dprofile=traffic-manager > logs/apim-tm.log 2>&1 &
+sh ./components/wso2am-gw/bin/profileSetup.sh -Dprofile=gateway-worker > logs/apim-gw.log 2>&1 &
 
 # Copy mysql-connector-j-8.4.0.jar
 print_title "Copying mysql-connector-j-8.4.0.jar"
