@@ -1,18 +1,18 @@
 # apim-distributed-dev-setup
 
-This repository provides a straightforward setup for a distributed API Management (APIM) development environment. Begin by copying the required packs into the `components` directory. **Note:** The directory names must strictly follow the naming convention: `wso2am-acp`, `wso2am-tm`, and `wso2am-universal-gw`. 
+This repository provides a straightforward setup for a distributed API Management (APIM) development environment. Begin by copying the required packs into the `components` directory. **Note:** The directory names must strictly follow the naming convention: `wso2am-cp`, `wso2am-tm`, and `wso2am-gw`. 
 
 When you execute the startup script, it initializes a MySQL Docker container and runs the scripts located in `conf/mysql/scripts`. Subsequently, the APIM components are launched with the configurations specified below:
 
-- **APIM-ACP**: Zero offset
+- **APIM-CP**: Zero offset
 - **APIM-TM**: Offset of 1
-- **APIM-Universal-GW**: Offset of 2
+- **APIM-GW**: Offset of 2
 
 ### Prerequisites
 
 - Docker Engine 20.10.x or newer
 - Docker Compose v2.x or newer
-- APIM packs
+- APIM 4.0.0 pack
 
 ### Getting Started
 
@@ -21,35 +21,34 @@ When you execute the startup script, it initializes a MySQL Docker container and
     git clone https://github.com/yourusername/apim-distributed-dev-setup.git
     cd apim-distributed-dev-setup
     ```
-2. Extract the packs into the `components` directory:
-    Ensure the packs are placed in the `components` directory with the following exact folder names:
-    - `wso2am-acp`
-    - `wso2am-tm`
-    - `wso2am-universal-gw`
+
+2. Update the pack to the required update level and rename the pack to ``wso2am``.
+
+3. Copy the renamed pack into the `components` directory:
+    Ensure the pack are placed in the `components` directory with the following folder name:
+    - `wso2am`
     ```
     components
-    ├── wso2am-acp
-    ├── wso2am-tm
-    └── wso2am-universal-gw
+    └── wso2am
     ```
 
-3. Build and start the APIM distributed setup:
+4. Build and start the APIM distributed setup:
     ```bash
     sh run.sh start --seed  # The `--seed` argument ensures that the database scripts are executed during startup.
     ```
 
-4. Start the distributed setup without executing the database scripts:
+5. Start the distributed setup without executing the database scripts:
     ```bash
     sh run.sh start
     ```
 
-5. Access the portals at the following URLs:
+6. Access the portals at the following URLs:
     ```
     Control Plane: https://localhost:9443
     Gateway: https://localhost:8245
     ```
 
-6. Stop the services:
+7. Stop the services:
     ```bash
     sh run.sh --stop
     ```

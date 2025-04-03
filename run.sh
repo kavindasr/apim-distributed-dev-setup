@@ -1,5 +1,10 @@
 #!/bin/bash
 
+COMPONENTS_DIR="./components"
+ZIP_FILE="$COMPONENTS_DIR/wso2am-4.0.0.zip"
+EXTRACT_DIR="$COMPONENTS_DIR/wso2am"
+COPIES=("wso2am-cp" "wso2am-tm" "wso2am-gw")
+
 MYSQL_USER=wso2carbon
 MYSQL_PASSWORD=wso2carbon
 WSO2AM_SHARED_DB=WSO2AM_SHARED_DB
@@ -42,15 +47,18 @@ wait_for_service_start() {
 }
 
 stop_services() {
-    print_title "Stopping apim-acp"
-    sh ./components/wso2am-acp/bin/api-cp.sh --stop
+    print_title "Stopping apim-cp"
+    sh ./components/wso2am-cp/bin/api-manager.sh --stop
     print_title "Stopping apim-tm"
-    sh ./components/wso2am-tm/bin/traffic-manager.sh --stop
-    print_title "Stopping apim-universal-gw"
-    sh ./components/wso2am-universal-gw/bin/gateway.sh --stop
+    sh ./components/wso2am-tm/bin/api-manager.sh --stop
+    print_title "Stopping apim-gw"
+    sh ./components/wso2am-gw/bin/api-manager.sh --stop
 
     # Stop docker containers
     docker-compose down
+
+    # Deleting extracted and copied directories
+    rm -rf "$EXTRACT_DIR" "${COPIES[@]/#/$COMPONENTS_DIR/}"
 }
 
 # Process input arguments
@@ -76,17 +84,18 @@ fi
 mkdir -p logs
 rm -rf logs/*
 
-# Copy deployment.toml files
-print_title "Copying deployment.toml files"
-cp -v -r ./conf/apim-acp/repository/* ./components/wso2am-acp/repository/
-cp -v -r ./conf/apim-tm/repository/* ./components/wso2am-tm/repository/
-cp -v -r ./conf/apim-universal-gw/repository/* ./components/wso2am-universal-gw/repository/
+# Create copies of packs for each component
+print_title "Creating copies of packs for each component..."
+for copy in "${COPIES[@]}"; do
+  echo "Creating copy: $COMPONENTS_DIR/$copy..."
+  cp -r "$EXTRACT_DIR" "$COMPONENTS_DIR/$copy"
+done
 
 # Copy mysql-connector-j-8.4.0.jar
 print_title "Copying mysql-connector-j-8.4.0.jar"
-cp -v ./lib/mysql-connector-j-8.4.0.jar ./components/wso2am-acp/repository/components/lib/
+cp -v ./lib/mysql-connector-j-8.4.0.jar ./components/wso2am-cp/repository/components/lib/
 cp -v ./lib/mysql-connector-j-8.4.0.jar ./components/wso2am-tm/repository/components/lib/
-cp -v ./lib/mysql-connector-j-8.4.0.jar ./components/wso2am-universal-gw/repository/components/lib/
+cp -v ./lib/mysql-connector-j-8.4.0.jar ./components/wso2am-gw/repository/components/lib/
 
 # Start docker containers
 print_title "Starting docker containers"
@@ -112,19 +121,25 @@ if [ $? -ne 0 ]; then
     exit $?
 fi
 
-# Start apim-acp
-print_title "Starting apim-acp"
-sh ./components/wso2am-acp/bin/api-cp.sh > logs/apim-acp.log 2>&1 &
+# Copy deployment.toml files
+print_title "Copying deployment.toml files"
+cp -f ./conf/apim-cp/repository/conf/deployment.toml ./components/wso2am-cp/repository/conf/deployment.toml
+cp -f ./conf/apim-tm/repository/conf/deployment.toml ./components/wso2am-tm/repository/conf/deployment.toml
+cp -f ./conf/apim-gw/repository/conf/deployment.toml ./components/wso2am-gw/repository/conf/deployment.toml
+
+# Start apim-cp
+print_title "Starting apim-cp"
+sh ./components/wso2am-cp/bin/api-manager.sh > logs/apim-cp.log 2>&1 &
 if [ $? -ne 0 ]; then
-    echo "Error starting apim-acp. Exiting."
+    echo "Error starting apim-cp. Exiting."
     exit $?
 fi
-# Wait until apim-acp is fully started and responding
-wait_for_service_start "apim-acp" 0
+# Wait until apim-cp is fully started and responding
+wait_for_service_start "apim-cp" 0
 
 # Start apim-tm
 print_title "Starting apim-tm"
-sh ./components/wso2am-tm/bin/traffic-manager.sh -DportOffset=1 > logs/apim-tm.log 2>&1 &
+sh ./components/wso2am-tm/bin/api-manager.sh -DportOffset=1 > logs/apim-tm.log 2>&1 &
 if [ $? -ne 0 ]; then
     echo "Error starting apim-tm. Exiting."
     exit $?
@@ -132,12 +147,12 @@ fi
 # Wait until apim-tm is fully started and responding
 wait_for_service_start "apim-tm" 1
 
-# Start apim-universal-gw
-print_title "Starting apim-universal-gw"
-sh ./components/wso2am-universal-gw/bin/gateway.sh -DportOffset=2 > logs/apim-universal-gw.log 2>&1 &
+# Start apim-gw
+print_title "Starting apim-gw"
+sh ./components/wso2am-gw/bin/api-manager.sh -DportOffset=2 > logs/apim-gw.log 2>&1 &
 if [ $? -ne 0 ]; then
-    echo "Error starting apim-universal-gw. Exiting."
+    echo "Error starting apim-gw. Exiting."
     exit $?
 fi
-# Wait until apim-universal-gw is fully started and responding
-wait_for_service_start "apim-universal-gw" 2
+# Wait until apim-gw is fully started and responding
+wait_for_service_start "apim-gw" 2

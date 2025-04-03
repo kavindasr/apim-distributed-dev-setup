@@ -1,6 +1,9 @@
+components/*.zip
 components/wso2am/**
 components/wso2am-acp/**
 components/wso2am-tm/**
 components/wso2am-universal-gw/**
+components/wso2am-cp/**
+components/wso2am-gw/**
 
 logs/**
