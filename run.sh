@@ -118,7 +118,7 @@ docker-compose up -d
 
 # Wait for mysql to start
 echo "Waiting for mysql to start..."
-docker-compose exec mysql mysqladmin --silent --wait=60 -uroot -proot ping
+docker-compose exec mysql mysqladmin --silent --wait=60 -uroot -proot -h127.0.0.1 ping
 if [ $? -ne 0 ]; then
     echo "Error: mysql did not start within the expected time"
     exit $?
@@ -129,9 +129,9 @@ sleep 10
 # Seed database if seed flag is set
 if [ "$SEED" = "seed" ] && [ "$CMD" != "stop" ]; then
     print_title "Seeding database"
-    docker-compose exec mysql mysql -u$MYSQL_USER -p$MYSQL_PASSWORD -e "USE $WSO2AM_SHARED_DB; source /home/dbScripts/mysql.sql"
+    docker-compose exec mysql mysql -u$MYSQL_USER -p$MYSQL_PASSWORD -h127.0.0.1 -e "USE $WSO2AM_SHARED_DB; source /home/dbScripts/mysql.sql"
     sleep 10
-    docker-compose exec mysql mysql -u$MYSQL_USER -p$MYSQL_PASSWORD -e "USE $WSO2AM_DB; source /home/dbScripts/apimgt/mysql.sql"
+    docker-compose exec mysql mysql -u$MYSQL_USER -p$MYSQL_PASSWORD -h127.0.0.1 -e "USE $WSO2AM_DB; source /home/dbScripts/apimgt/mysql.sql"
     sleep 10
 fi
 
