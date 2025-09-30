@@ -57,8 +57,10 @@ stop_services() {
     # Stop docker containers
     docker-compose down
 
-    # Deleting extracted and copied directories
-    rm -rf "$EXTRACT_DIR" "${COPIES[@]/#/$COMPONENTS_DIR/}"
+    # Deleting only the copied directories, preserving the original
+    for copy in "${COPIES[@]}"; do
+        rm -rf "$COMPONENTS_DIR/$copy"
+    done
 }
 
 clean_services() {
