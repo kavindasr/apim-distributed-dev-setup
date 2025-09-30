@@ -165,7 +165,7 @@ cp -f ./conf/apim-gw/repository/conf/deployment.toml ./components/wso2am-gw/repo
 
 # Start apim-cp
 print_title "Starting apim-cp"
-sh ./components/wso2am-cp/bin/api-manager.sh > logs/apim-cp.log 2>&1 &
+sh ./components/wso2am-cp/bin/api-manager.sh -Dprofile=control-plane > logs/apim-cp.log 2>&1 &
 if [ $? -ne 0 ]; then
     echo "Error starting apim-cp. Exiting."
     exit $?
@@ -175,7 +175,7 @@ wait_for_service_start "apim-cp" 0
 
 # Start apim-tm
 print_title "Starting apim-tm"
-sh ./components/wso2am-tm/bin/api-manager.sh -DportOffset=1 > logs/apim-tm.log 2>&1 &
+sh ./components/wso2am-tm/bin/api-manager.sh -Dprofile=traffic-manager -DportOffset=1 > logs/apim-tm.log 2>&1 &
 if [ $? -ne 0 ]; then
     echo "Error starting apim-tm. Exiting."
     exit $?
@@ -185,7 +185,7 @@ wait_for_service_start "apim-tm" 1
 
 # Start apim-gw
 print_title "Starting apim-gw"
-sh ./components/wso2am-gw/bin/api-manager.sh -DportOffset=2 > logs/apim-gw.log 2>&1 &
+sh ./components/wso2am-gw/bin/api-manager.sh -Dprofile=gateway-worker -DportOffset=2 > logs/apim-gw.log 2>&1 &
 if [ $? -ne 0 ]; then
     echo "Error starting apim-gw. Exiting."
     exit $?
