@@ -61,6 +61,13 @@ stop_services() {
     rm -rf "$EXTRACT_DIR" "${COPIES[@]/#/$COMPONENTS_DIR/}"
 }
 
+clean_services() {
+    print_title "Cleaning services"
+    docker volume rm apim-distributed-dev-setup_mysql-apim-data
+
+    ps -ef | grep 'wso2' | grep -v grep | awk '{print $2}' | xargs -r kill -9
+}
+
 # Process input arguments
 for c in $*
 do
@@ -72,12 +79,29 @@ do
           SEED="seed"
     elif [ "$c" = "--restart" ] || [ "$c" = "-restart" ] || [ "$c" = "restart" ]; then
           CMD="restart"
+    elif [ "$c" = "--clean" ] || [ "$c" = "-clean" ]; then
+          CLEAN="clean"
+    elif [ "$c" = "--help" ] || [ "$c" = "-h" ]; then
+        echo "Usage: $0 [--start | --stop | --restart | --seed | --clean | --help]"
+        echo "  start: Start the services"
+        echo "  stop: Stop the services"
+        # echo "  --restart: Restart the services"
+        echo "  --seed: Seed the database, use with start"
+        echo "  --clean: Clean the services, use with stop"
+        exit 0
+    else
+        echo "Unknown option: $c"
+        exit 1
     fi
 done
 
 # Stop services
 if [ "$CMD" = "stop" ]; then
     stop_services
+
+    if [ "$CLEAN" = "clean" ]; then
+        clean_services
+    fi
     exit 0
 fi
 
@@ -109,17 +133,21 @@ docker-compose up -d
 
 # Wait for mysql to start
 echo "Waiting for mysql to start..."
-docker-compose exec mysql mysqladmin --silent --wait=30 -uroot -proot ping
+docker-compose exec mysql mysqladmin --silent --wait=60 -uroot -proot -h127.0.0.1 ping
 if [ $? -ne 0 ]; then
     echo "Error: mysql did not start within the expected time"
     exit $?
 fi
 
+sleep 10
+
 # Seed database if seed flag is set
 if [ "$SEED" = "seed" ] && [ "$CMD" != "stop" ]; then
     print_title "Seeding database"
-    docker-compose exec mysql mysql -u$MYSQL_USER -p$MYSQL_PASSWORD -e "USE $WSO2AM_SHARED_DB; source /home/dbScripts/mysql.sql"
-    docker-compose exec mysql mysql -u$MYSQL_USER -p$MYSQL_PASSWORD -e "USE $WSO2AM_DB; source /home/dbScripts/apimgt/mysql.sql"
+    docker-compose exec mysql mysql -u$MYSQL_USER -p$MYSQL_PASSWORD -h127.0.0.1 -e "USE $WSO2AM_SHARED_DB; source /home/dbscripts/mysql.sql"
+    sleep 10
+    docker-compose exec mysql mysql -u$MYSQL_USER -p$MYSQL_PASSWORD -h127.0.0.1 -e "USE $WSO2AM_DB; source /home/dbscripts/apimgt/mysql.sql"
+    sleep 10
 fi
 
 if [ $? -ne 0 ]; then
