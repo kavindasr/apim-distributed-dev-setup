@@ -1,6 +1,6 @@
 # apim-distributed-dev-setup
 
-This repository provides a straightforward setup for a distributed API Management (APIM) development environment. Begin by copying the required packs into the `components` directory. **Note:** The directory names must strictly follow the naming convention: `wso2am-cp`, `wso2am-tm`, and `wso2am-gw`. 
+This repository provides a straightforward setup for a distributed API Management (APIM) development environment. Begin by copying the required packs into the `components` directory.
 
 When you execute the startup script, it initializes a MySQL Docker container and runs the scripts located in `conf/mysql/scripts`. Subsequently, the APIM components are launched with the configurations specified below:
 
