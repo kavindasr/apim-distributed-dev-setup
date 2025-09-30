@@ -53,6 +53,11 @@ When you execute the startup script, it initializes a MySQL Docker container and
     sh run.sh --stop
     ```
 
+8. Stop services and remove the DB volume
+    ```bash
+    sh run.sh stop --clean
+    ```
+
 ### Environment Configuration
 
 To update any configuration files in the `conf/repository` directory of the packs, make the changes in the `conf/repository` directory. These updates will be automatically copied to the required location when you execute the `run.sh` script.

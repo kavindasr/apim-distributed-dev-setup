@@ -5,5 +5,5 @@ components/wso2am-tm/**
 components/wso2am-universal-gw/**
 components/wso2am-cp/**
 components/wso2am-gw/**
-
+newman-profile-results.xml
 logs/**
