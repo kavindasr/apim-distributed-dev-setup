@@ -4,3 +4,8 @@ components/wso2am-tm/**
 components/wso2am-universal-gw/**
 newman-profile-results.xml
 logs/**
+
+.DS_Store
+*.log
+*.tmp
+*.bak

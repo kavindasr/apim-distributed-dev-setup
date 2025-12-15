@@ -11,8 +11,8 @@ This profile is used to verify basic functionality. Here, we execute a Postman c
 2. Once the distributed setup is up and running, execute the following command to run the Postman collection:
 
 ```bash
-newman run Profile-4.5.0.postman_collection.json \
-    --environment APIM-4.5.0.postman_environment.json \
+newman run Profile-4.6.0.postman_collection.json \
+    --environment APIM-4.6.0.postman_environment.json \
     --env-var "cluster_ip=127.0.0.1" \
     --env-var "operation_policy_file_path=./changeHTTPMethod_v2.j2" \
     --insecure \

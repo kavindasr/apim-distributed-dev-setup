@@ -66,8 +66,7 @@ traffic_manager_auth_urls = ["ssl://localhost:9712"]
 
 [apim.analytics]
 enable = false
-config_endpoint = "https://localhost:8080/auth/v1"
-auth_token = ""
+type = "moesif"
 
 # Caches
 [apim.cache.gateway_token]

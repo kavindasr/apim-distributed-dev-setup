@@ -49,7 +49,7 @@ key_password =  "wso2carbon"
 #key_password =  "wso2carbon"
 
 [apim]
-gateway_type = "Regular,APK,AWS"
+gateway_type = "Regular,APK,AWS,Azure,Kong,Envoy"
 
 [[apim.gateway.environment]]
 name = "Default"
@@ -156,8 +156,8 @@ subscriptions=["POST_ADD_USER"]
 [service_provider]
 sp_name_regex = "^[\\sa-zA-Z0-9._-]*$"
 
-#[database.local]
-#url = "jdbc:h2:./repository/database/WSO2CARBON_DB;DB_CLOSE_ON_EXIT=FALSE"
+# [database.local]
+# url = "jdbc:h2:./repository/database/WSO2CARBON_DB;DB_CLOSE_ON_EXIT=FALSE"
 
 [[event_listener]]
 id = "token_revocation"
