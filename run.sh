@@ -4,6 +4,9 @@ MYSQL_USER=wso2carbon
 MYSQL_PASSWORD=wso2carbon
 WSO2AM_SHARED_DB=WSO2AM_SHARED_DB
 WSO2AM_DB=WSO2AM_DB
+UPDATE_PACKS=""
+UPDATE_STAGING=""
+PACKS_DIR=""
 
 print_title() {
   local title="$1"
@@ -41,6 +44,166 @@ wait_for_service_start() {
     fi
 }
 
+u2() {
+    if [ -x "./bin/update_tool_setup.sh" ]; then
+        ./bin/update_tool_setup.sh
+    fi
+
+    if [ -x "./bin/wso2update_darwin" ]; then
+        ./bin/wso2update_darwin --username "$WSO2_USERNAME" --password "$WSO2_PASSWORD" "$@"
+    elif [ -x "./bin/wso2update_darwin_arm64" ]; then
+        ./bin/wso2update_darwin_arm64 --username "$WSO2_USERNAME" --password "$WSO2_PASSWORD" "$@"
+    else
+        echo "No suitable wso2update binary found."
+        return 1
+    fi
+}
+
+process_pack() {
+    local zip_file="$1"
+    shift
+    local zip_dir
+    local zip_name
+    zip_dir=$(dirname "$zip_file")
+    zip_name=$(basename "$zip_file")
+
+    echo "Processing $zip_file ..."
+
+    local work_dir
+    work_dir=$(mktemp -d)
+
+    unzip -q "$zip_file" -d "$work_dir"
+
+    local root_dir
+    root_dir=$(find "$work_dir" -mindepth 1 -maxdepth 1 -type d | head -n 1)
+
+    if [ -z "$root_dir" ]; then
+        echo "Failed to detect extracted directory for $zip_file"
+        rm -rf "$work_dir"
+        return 1
+    fi
+
+    pushd "$root_dir" > /dev/null
+
+    echo "Updating the update tool for $zip_file ..."
+    u2 || echo "Update tool step completed (may have updated or already up-to-date)"
+
+    echo "Running wso2 update for $zip_file ..."
+    u2 "$@" || echo "WSO2 update step completed"
+
+    popd > /dev/null
+
+    pushd "$work_dir" > /dev/null
+    zip -qr "../$zip_name" .
+    popd > /dev/null
+
+    mv "$work_dir/../$zip_name" "$zip_dir/$zip_name"
+
+    rm -rf "$work_dir"
+
+    echo "Completed $zip_file"
+}
+
+update_packs() {
+    print_title "Updating packs"
+
+    for component_dir in ./components/wso2am-acp ./components/wso2am-tm ./components/wso2am-universal-gw; do
+        if [ ! -d "$component_dir" ]; then
+            echo "Warning: $component_dir does not exist. Skipping."
+            continue
+        fi
+
+        echo "Updating $component_dir ..."
+        cd "$component_dir" || continue
+
+        echo "Updating the update tool for $component_dir ..."
+        u2 || echo "Update tool step completed (may have updated or already up-to-date)"
+
+        echo "Running wso2 update for $component_dir ..."
+        u2 || echo "WSO2 update step completed"
+
+        cd - > /dev/null || exit 1
+        echo "Completed $component_dir"
+    done
+}
+
+setup_packs() {
+    source_dir="$1"
+    
+    if [ ! -d "$source_dir" ]; then
+        echo "Error: Directory '$source_dir' does not exist"
+        return 1
+    fi
+
+    print_title "Setting up packs from $source_dir"
+
+    # Find all zip files in the source directory
+    zip_count=$(find "$source_dir" -maxdepth 1 -name "*.zip" | wc -l)
+
+    if [ "$zip_count" -eq 0 ]; then
+        echo "No zip files found in $source_dir"
+        return 1
+    fi
+
+    # Create components directory if it doesn't exist
+    mkdir -p ./components
+
+    find "$source_dir" -maxdepth 1 -name "*.zip" | while read -r zip_file; do
+        zip_name=$(basename "$zip_file")
+        target_name=""
+
+        # Determine target directory name based on zip filename (case insensitive)
+        case "$zip_name" in
+            *[Aa][Cc][Pp]*)
+                target_name="wso2am-acp"
+                ;;
+            *[Tt][Mm]* | *[Tt]raffic*)
+                target_name="wso2am-tm"
+                ;;
+            *[Gg][Ww]* | *[Gg]ateway*)
+                target_name="wso2am-universal-gw"
+                ;;
+            *)
+                echo "Warning: Could not determine component type for $zip_name (expected 'acp', 'tm', or 'gw' in filename). Skipping."
+                continue
+                ;;
+        esac
+
+        echo "Processing $zip_name -> $target_name"
+
+        # Remove existing target directory if it exists
+        if [ -d "./components/$target_name" ]; then
+            echo "Removing existing ./components/$target_name"
+            rm -rf "./components/$target_name"
+        fi
+
+        # Create temp directory for extraction
+        work_dir=$(mktemp -d)
+
+        # Unzip to temp directory
+        unzip -q "$zip_file" -d "$work_dir"
+
+        # Find the extracted root folder (exclude __MACOSX metadata folder)
+        root_dir=$(find "$work_dir" -mindepth 1 -maxdepth 1 -type d ! -name "__MACOSX" | head -n 1)
+
+        if [ -z "$root_dir" ]; then
+            echo "Error: Failed to detect extracted directory for $zip_name"
+            rm -rf "$work_dir"
+            continue
+        fi
+
+        # Move extracted directory to components with the target name
+        mv "$root_dir" "./components/$target_name"
+        
+        # Cleanup temp directory
+        rm -rf "$work_dir"
+
+        echo "Installed $zip_name as ./components/$target_name"
+    done
+
+    echo "Pack setup completed"
+}
+
 stop_services() {
     print_title "Stopping apim-acp"
     sh ./components/wso2am-acp/bin/api-cp.sh --stop
@@ -73,13 +236,36 @@ do
           CMD="restart"
     elif [ "$c" = "--clean" ] || [ "$c" = "-clean" ]; then
           CLEAN="clean"
+        elif [ "$c" = "--update" ] || [ "$c" = "-update" ]; then
+            UPDATE_PACKS="update"
+        elif [ "$c" = "--update-staging" ] || [ "$c" = "-update-staging" ]; then
+            UPDATE_PACKS="update"
+            UPDATE_STAGING="staging"
+    elif echo "$c" | grep -q '^--packs-dir='; then
+            PACKS_DIR=$(echo "$c" | sed 's/^--packs-dir=//')
+    elif echo "$c" | grep -q '^-packs-dir='; then
+            PACKS_DIR=$(echo "$c" | sed 's/^-packs-dir=//')
     elif [ "$c" = "--help" ] || [ "$c" = "-h" ]; then
-        echo "Usage: $0 [--start | --stop | --restart | --seed | --clean | --help]"
-        echo "  start: Start the services"
-        echo "  stop: Stop the services"
-        # echo "  --restart: Restart the services"
-        echo "  --seed: Seed the database, use with start"
-        echo "  --clean: Clean the services, use with stop"
+        echo "Usage: $0 [options] <command>"
+        echo ""
+        echo "Commands:"
+        echo "  start                 Start the services"
+        echo "  stop                  Stop the services"
+        echo ""
+        echo "Options (can be combined):"
+        echo "  --packs-dir=<path>    Setup components from zip files in specified directory"
+        echo "  --update              Update packs before starting"
+        echo "  --update-staging      Update packs to staging (TESTING level) before starting"
+        echo "  --seed                Seed the database"
+        echo "  --clean               Clean the services (use with stop)"
+        echo ""
+        echo "Examples:"
+        echo "  $0 start                                      # Start services"
+        echo "  $0 --seed start                               # Seed DB and start"
+        echo "  $0 --update start                             # Update packs and start"
+        echo "  $0 --packs-dir=/path/to/zips start            # Setup from zips and start"
+        echo "  $0 --packs-dir=/path/to/zips --update --seed start  # Full setup"
+        echo "  $0 stop --clean                               # Stop and clean"
         exit 0
     else
         echo "Unknown option: $c"
@@ -95,6 +281,26 @@ if [ "$CMD" = "stop" ]; then
         clean_services
     fi
     exit 0
+fi
+
+# Setup packs from specified directory
+if [ -n "$PACKS_DIR" ]; then
+    setup_packs "$PACKS_DIR"
+fi
+
+if [ "$UPDATE_PACKS" = "update" ] && [ "$CMD" != "stop" ]; then
+    read -p "Enter WSO2 username: " WSO2_USERNAME
+    read -s -p "Enter WSO2 password: " WSO2_PASSWORD
+    echo ""
+    export WSO2_USERNAME
+    export WSO2_PASSWORD
+
+    if [ "$UPDATE_STAGING" = "staging" ]; then
+        export WSO2_UPDATES_UPDATE_LEVEL_STATE=TESTING
+        echo "Updating packs to staging (TESTING level)..."
+    fi
+
+    update_packs
 fi
 
 mkdir -p logs
