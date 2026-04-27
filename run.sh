@@ -298,6 +298,8 @@ if [ "$UPDATE_PACKS" = "update" ] && [ "$CMD" != "stop" ]; then
     if [ "$UPDATE_STAGING" = "staging" ]; then
         export WSO2_UPDATES_UPDATE_LEVEL_STATE=TESTING
         echo "Updating packs to staging (TESTING level)..."
+    else
+        unset WSO2_UPDATES_UPDATE_LEVEL_STATE
     fi
 
     update_packs
