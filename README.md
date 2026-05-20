@@ -10,6 +10,7 @@ When you execute the startup script, it initializes a MySQL Docker container and
 
 ### Prerequisites
 
+- JDK 21
 - Docker Engine 20.10.x or newer
 - Docker Compose v2.x or newer
 - APIM packs

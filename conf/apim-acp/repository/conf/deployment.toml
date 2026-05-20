@@ -49,7 +49,7 @@ key_password =  "wso2carbon"
 #key_password =  "wso2carbon"
 
 [apim]
-gateway_type = "Regular,APK,AWS,Azure,Kong,Envoy"
+gateway_type = "Regular,APK,AWS,Azure,Kong,Envoy,APIPlatform"
 
 [[apim.gateway.environment]]
 name = "Default"
@@ -66,6 +66,10 @@ ws_endpoint = "ws://localhost:9101"
 wss_endpoint = "wss://localhost:8101"
 http_endpoint = "http://localhost:8282"
 https_endpoint = "https://localhost:8245"
+
+[[oauth.extensions.token_types]]
+name = "JWT"
+issuer = "org.wso2.is.key.manager.tokenpersistence.issuer.ExtendedJWTTokenIssuer"
 
 #[apim.cache.gateway_token]
 #enable = true
