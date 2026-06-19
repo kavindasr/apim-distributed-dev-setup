@@ -43,3 +43,6 @@ username = "$ref{super_admin.username}"
 password = "$ref{super_admin.password}"
 service_url = "https://localhost:9443/services/"
 event_listening_endpoints = ["tcp://localhost:5672"]
+
+[encryption]
+key = "04e72c83932b2c2647acb836cba836f1e4e4e59ef98e70a56ddeedb04f883f3a"
