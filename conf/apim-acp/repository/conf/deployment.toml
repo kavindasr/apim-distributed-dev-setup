@@ -185,3 +185,6 @@ event_listening_endpoints = ["tcp://localhost:5672"]
 [[apim.event_hub.publish.url_group]]
 urls = ["tcp://localhost:9611"]
 auth_urls = ["ssl://localhost:9711"]
+
+[encryption]
+key = "04e72c83932b2c2647acb836cba836f1e4e4e59ef98e70a56ddeedb04f883f3a"

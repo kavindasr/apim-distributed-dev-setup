@@ -89,3 +89,6 @@ allow_origins = "*"
 allow_methods = ["GET","PUT","POST","DELETE","PATCH","OPTIONS"]
 allow_headers = ["authorization","Access-Control-Allow-Origin","Content-Type","SOAPAction","apikey","Internal-Key"]
 allow_credentials = false
+
+[encryption]
+key = "04e72c83932b2c2647acb836cba836f1e4e4e59ef98e70a56ddeedb04f883f3a"
