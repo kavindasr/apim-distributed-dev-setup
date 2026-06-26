@@ -44,6 +44,51 @@ wait_for_service_start() {
     fi
 }
 
+# Check Java version. For APIM 4.7.0 and above, JDK 21+ is required.
+check_java_version() {
+    local required=21
+
+    if ! command -v java > /dev/null 2>&1; then
+        echo "Error: Java not found. APIM 4.7.0 and above require JDK $required+"
+        exit 1
+    fi
+
+    local version
+    version=$(java -version 2>&1 | head -n 1 | sed -E 's/.*version "([0-9]+).*/\1/')
+
+    if [ -z "$version" ] || ! [ "$version" -eq "$version" ] 2>/dev/null; then
+        echo "Error: Could not determine Java version. APIM 4.7.0 and above require JDK $required+"
+        exit 1
+    fi
+
+    if [ "$version" -lt "$required" ]; then
+        echo "Error: Java $version detected. APIM 4.7.0 and above require JDK $required+"
+        exit 1
+    fi
+
+    echo "Java $version detected (JDK $required+ required)"
+}
+
+# Tail a component's wso2carbon.log into logs/, waiting (max 60s) for the file to be created first
+tail_component_log() {
+    local service_name=$1
+    local log_file="$(pwd)/components/$2/repository/logs/wso2carbon.log"
+    local out_file="logs/$service_name.log"
+
+    echo "Waiting for $service_name log file to be created..."
+    local wait=0
+    while [ ! -f "$log_file" ]; do
+        sleep 1
+        wait=$((wait + 1))
+        if [ "$wait" -ge 60 ]; then
+            echo "Error: $service_name log file not created within 60s"
+            return 1
+        fi
+    done
+
+    tail -f -n 5 "$log_file" > "$out_file" 2>/dev/null &
+}
+
 u2() {
     if [ -x "./bin/update_tool_setup.sh" ]; then
         ./bin/update_tool_setup.sh
@@ -302,6 +347,9 @@ if [ "$CMD" = "stop" ]; then
     exit 0
 fi
 
+# Check Java version before starting services
+check_java_version
+
 # Setup packs from specified directory
 if [ -n "$PACKS_DIR" ]; then
     setup_packs "$PACKS_DIR"
@@ -370,7 +418,7 @@ if [ $? -ne 0 ]; then
     exit $?
 fi
 
-tail -f -n 5 "$(pwd)/components/wso2am-acp/repository/logs/wso2carbon.log" > logs/apim-acp.log 2>/dev/null &
+tail_component_log "apim-acp" "wso2am-acp"
 
 # Wait until apim-acp is fully started and responding
 wait_for_service_start "apim-acp" 0
@@ -383,7 +431,7 @@ if [ $? -ne 0 ]; then
     exit $?
 fi
 
-tail -f -n 5 "$(pwd)/components/wso2am-tm/repository/logs/wso2carbon.log" > logs/apim-tm.log 2>/dev/null &
+tail_component_log "apim-tm" "wso2am-tm"
 
 # Wait until apim-tm is fully started and responding
 wait_for_service_start "apim-tm" 1
@@ -396,7 +444,7 @@ if [ $? -ne 0 ]; then
     exit $?
 fi
 
-tail -f -n 5 "$(pwd)/components/wso2am-universal-gw/repository/logs/wso2carbon.log" > logs/apim-universal-gw.log 2>/dev/null &
+tail_component_log "apim-universal-gw" "wso2am-universal-gw"
 
 # Wait until apim-universal-gw is fully started and responding
 wait_for_service_start "apim-universal-gw" 2
