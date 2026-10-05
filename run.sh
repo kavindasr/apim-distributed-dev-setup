@@ -396,7 +396,7 @@ echo "Waiting for mysql to start..."
 docker-compose exec mysql mysqladmin --silent --wait=60 -uroot -proot -h127.0.0.1 ping
 if [ $? -ne 0 ]; then
     echo "Error: mysql did not start within the expected time"
-    exit $?
+    exit 1
 fi
 
 sleep 10
@@ -415,36 +415,36 @@ print_title "Starting apim-acp"
 sh ./components/wso2am-acp/bin/api-cp.sh start
 if [ $? -ne 0 ]; then
     echo "Error starting apim-acp. Exiting."
-    exit $?
+    exit 1
 fi
 
 tail_component_log "apim-acp" "wso2am-acp"
 
 # Wait until apim-acp is fully started and responding
-wait_for_service_start "apim-acp" 0
+wait_for_service_start "apim-acp" 0 || exit 1
 
 # Start apim-tm
 print_title "Starting apim-tm"
 sh ./components/wso2am-tm/bin/traffic-manager.sh start -DportOffset=1
 if [ $? -ne 0 ]; then
     echo "Error starting apim-tm. Exiting."
-    exit $?
+    exit 1
 fi
 
 tail_component_log "apim-tm" "wso2am-tm"
 
 # Wait until apim-tm is fully started and responding
-wait_for_service_start "apim-tm" 1
+wait_for_service_start "apim-tm" 1 || exit 1
 
 # Start apim-universal-gw
 print_title "Starting apim-universal-gw"
 sh ./components/wso2am-universal-gw/bin/gateway.sh start -DportOffset=2
 if [ $? -ne 0 ]; then
     echo "Error starting apim-universal-gw. Exiting."
-    exit $?
+    exit 1
 fi
 
 tail_component_log "apim-universal-gw" "wso2am-universal-gw"
 
 # Wait until apim-universal-gw is fully started and responding
-wait_for_service_start "apim-universal-gw" 2
+wait_for_service_start "apim-universal-gw" 2 || exit 1
